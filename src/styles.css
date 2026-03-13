@@ -270,6 +270,23 @@ button:focus {
   margin-top: 0;
 }
 
+.chart-layout {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 10px;
+  align-items: end;
+}
+
+.y-axis {
+  height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 .bar-chart {
   min-height: 240px;
   display: grid;
@@ -277,15 +294,22 @@ button:focus {
   align-items: end;
   gap: 8px;
   margin-top: 14px;
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding-left: 8px;
 }
 
 .bar-item {
   display: grid;
   align-items: end;
+  height: 220px;
+  grid-template-rows: 1fr auto;
   gap: 6px;
 }
 
 .bar {
+  width: 100%;
+  align-self: end;
   border-radius: 8px 8px 4px 4px;
   background: linear-gradient(180deg, var(--accent), #f97316);
 }
