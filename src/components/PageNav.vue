@@ -9,9 +9,9 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const tabs = [
-  { id: 'home', label: 'Home' },
-  { id: 'awareness', label: 'Awareness' },
-  { id: 'risk', label: 'Risk Calculator' }
+  { id: 'home', label: 'Home', icon: '⌂' },
+  { id: 'awareness', label: 'Awareness', icon: '◉' },
+  { id: 'risk', label: 'Risk', icon: '◎' }
 ]
 
 function selectTab(id) {
@@ -20,7 +20,7 @@ function selectTab(id) {
 </script>
 
 <template>
-  <nav class="page-nav" aria-label="Primary">
+  <nav class="page-nav" aria-label="Primary navigation">
     <button
       v-for="tab in tabs"
       :key="tab.id"
@@ -29,7 +29,8 @@ function selectTab(id) {
       type="button"
       @click="selectTab(tab.id)"
     >
-      {{ tab.label }}
+      <span class="nav-icon" aria-hidden="true">{{ tab.icon }}</span>
+      <span class="nav-label">{{ tab.label }}</span>
     </button>
   </nav>
 </template>

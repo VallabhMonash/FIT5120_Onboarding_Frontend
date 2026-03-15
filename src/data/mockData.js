@@ -50,6 +50,34 @@ export const heatTrendData = [
   { region: 'NT', avgHotDays: 33 }
 ]
 
+export const heatTrendSeriesData = [
+  { year: 2020, region: 'Adelaide', avgUv: 6.61 },
+  { year: 2021, region: 'Adelaide', avgUv: 6.68 },
+  { year: 2022, region: 'Adelaide', avgUv: 6.74 },
+  { year: 2023, region: 'Adelaide', avgUv: 6.53 },
+  { year: 2024, region: 'Adelaide', avgUv: 6.51 },
+  { year: 2020, region: 'Melbourne', avgUv: 6.22 },
+  { year: 2021, region: 'Melbourne', avgUv: 6.12 },
+  { year: 2022, region: 'Melbourne', avgUv: 6.06 },
+  { year: 2023, region: 'Melbourne', avgUv: 5.59 },
+  { year: 2024, region: 'Melbourne', avgUv: 5.9 },
+  { year: 2020, region: 'Sydney', avgUv: 6.75 },
+  { year: 2021, region: 'Sydney', avgUv: 6.86 },
+  { year: 2022, region: 'Sydney', avgUv: 7.0 },
+  { year: 2023, region: 'Sydney', avgUv: 6.5 },
+  { year: 2024, region: 'Sydney', avgUv: 6.65 },
+  { year: 2020, region: 'Darwin', avgUv: 11.4 },
+  { year: 2021, region: 'Darwin', avgUv: 11.39 },
+  { year: 2022, region: 'Darwin', avgUv: 11.7 },
+  { year: 2023, region: 'Darwin', avgUv: 11.13 },
+  { year: 2024, region: 'Darwin', avgUv: 11.33 },
+  { year: 2020, region: 'Brisbane', avgUv: 8.18 },
+  { year: 2021, region: 'Brisbane', avgUv: 8.23 },
+  { year: 2022, region: 'Brisbane', avgUv: 8.18 },
+  { year: 2023, region: 'Brisbane', avgUv: 8.02 },
+  { year: 2024, region: 'Brisbane', avgUv: 8.11 }
+]
+
 export const fitzpatrickTones = [
   {
     id: 'I',

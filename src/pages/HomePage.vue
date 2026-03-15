@@ -11,9 +11,10 @@ const manualPostcode = ref(australianCities[0].postcode)
 const liveCity = ref(australianCities[0].name)
 const uvData = ref(null)
 const loadingUv = ref(false)
-const locationLabel = ref('Choose location permission mode')
+const locationLabel = ref('Awaiting location mode')
 const alertMessage = ref('')
 const statusMessage = ref('')
+const showPermissionPrompt = ref(false)
 const alertPermission = ref('opted-in')
 
 let refreshTimerId = null
@@ -21,9 +22,18 @@ let refreshTimerId = null
 const isDangerousUv = computed(() => (uvData.value?.uvIndex || 0) >= 6)
 const showManualForm = computed(() => locationPermission.value === 'denied')
 const showLiveControls = computed(() => locationPermission.value === 'granted')
+const alertEnabled = computed({
+  get: () => alertPermission.value === 'opted-in',
+  set: (value) => {
+    alertPermission.value = value ? 'opted-in' : 'opted-out'
+    persistLocationPreference()
+    sendUvAlertIfNeeded()
+  }
+})
 
 const STORAGE_KEYS = {
   permission: 'uv-custom-location-permission',
+  promptSeen: 'uv-location-prompt-seen',
   alertPermission: 'uv-custom-alert-permission',
   liveCity: 'uv-live-city',
   manualCity: 'uv-manual-city',
@@ -33,6 +43,7 @@ const STORAGE_KEYS = {
 function persistLocationPreference() {
   try {
     localStorage.setItem(STORAGE_KEYS.permission, locationPermission.value)
+    localStorage.setItem(STORAGE_KEYS.promptSeen, 'true')
     localStorage.setItem(STORAGE_KEYS.alertPermission, alertPermission.value)
     localStorage.setItem(STORAGE_KEYS.liveCity, liveCity.value)
     localStorage.setItem(STORAGE_KEYS.manualCity, manualCity.value)
@@ -45,6 +56,7 @@ function persistLocationPreference() {
 function loadLocationPreference() {
   try {
     const savedPermission = localStorage.getItem(STORAGE_KEYS.permission)
+    const savedPromptSeen = localStorage.getItem(STORAGE_KEYS.promptSeen)
     const savedAlertPermission = localStorage.getItem(STORAGE_KEYS.alertPermission)
     const savedLiveCity = localStorage.getItem(STORAGE_KEYS.liveCity)
     const savedManualCity = localStorage.getItem(STORAGE_KEYS.manualCity)
@@ -52,6 +64,10 @@ function loadLocationPreference() {
 
     if (savedPermission === 'prompt' || savedPermission === 'granted' || savedPermission === 'denied') {
       locationPermission.value = savedPermission
+    }
+
+    if (!savedPromptSeen) {
+      showPermissionPrompt.value = true
     }
 
     if (savedAlertPermission === 'opted-in' || savedAlertPermission === 'opted-out') {
@@ -75,7 +91,12 @@ function loadLocationPreference() {
 }
 
 function buildAlertMessage(index, label) {
-  return `UV index ${index} detected for ${label}. Potential skin damage risk is elevated. Use protective measures.`
+  return `UV index ${index} detected for ${label}. Potential skin damage risk is elevated.`
+}
+
+function setPermissionFromPrompt(mode) {
+  showPermissionPrompt.value = false
+  setCustomPermission(mode)
 }
 
 async function updateUvFromLiveCoordinates(lat, lon) {
@@ -83,8 +104,8 @@ async function updateUvFromLiveCoordinates(lat, lon) {
   try {
     const result = await getUvByCoordinates(lat, lon)
     uvData.value = result
-    locationLabel.value = `Live mode: ${liveCity.value}`
-    statusMessage.value = 'Live-mode UV loaded from your selected city.'
+    locationLabel.value = `Live mode · ${liveCity.value}`
+    statusMessage.value = 'Live mode updated.'
     persistLocationPreference()
   } catch (error) {
     statusMessage.value = 'Could not load UV for live mode.'
@@ -109,7 +130,7 @@ async function updateUvFromManual() {
     const result = await getUvByCityAndPostcode(manualCity.value, manualPostcode.value)
     uvData.value = result
     locationLabel.value = `${manualCity.value} ${manualPostcode.value}`
-    statusMessage.value = 'Manual location UV loaded.'
+    statusMessage.value = 'Manual location updated.'
     persistLocationPreference()
   } catch (error) {
     statusMessage.value = 'Please choose a valid city and postcode.'
@@ -123,26 +144,16 @@ async function setCustomPermission(mode) {
   persistLocationPreference()
 
   if (mode === 'granted') {
-    statusMessage.value = 'Custom permission set to full access.'
+    statusMessage.value = 'Location access enabled.'
     await updateUvFromLiveMode()
   } else if (mode === 'denied') {
-    statusMessage.value = 'Custom permission set to denied. Use manual location entry.'
+    statusMessage.value = 'Location access denied. Manual input enabled.'
     await updateUvFromManual()
   } else {
-    statusMessage.value = 'Custom permission set to ask later. Choose a mode to continue.'
+    statusMessage.value = 'Choose location mode to continue.'
     uvData.value = null
-    locationLabel.value = 'Waiting for custom permission choice'
+    locationLabel.value = 'Awaiting location mode'
   }
-}
-
-function setAlertPermission(mode) {
-  alertPermission.value = mode
-  persistLocationPreference()
-  sendUvAlertIfNeeded()
-  statusMessage.value =
-    mode === 'opted-in'
-      ? 'In-app UV alerts are enabled.'
-      : 'In-app UV alerts are disabled until you opt in again.'
 }
 
 function sendUvAlertIfNeeded() {
@@ -151,8 +162,7 @@ function sendUvAlertIfNeeded() {
     return
   }
 
-  const message = buildAlertMessage(uvData.value.uvIndex, locationLabel.value)
-  alertMessage.value = message
+  alertMessage.value = buildAlertMessage(uvData.value.uvIndex, locationLabel.value)
 }
 
 watch([uvData, alertPermission], () => {
@@ -163,13 +173,13 @@ onMounted(() => {
   loadLocationPreference()
 
   if (locationPermission.value === 'granted') {
-    statusMessage.value = 'Using saved preference: full location access.'
+    statusMessage.value = 'Using saved live location mode.'
     updateUvFromLiveMode()
   } else if (locationPermission.value === 'denied') {
-    statusMessage.value = 'Using saved preference: denied location access.'
+    statusMessage.value = 'Using saved manual location mode.'
     updateUvFromManual()
   } else {
-    statusMessage.value = 'Select a custom location permission option to begin.'
+    statusMessage.value = 'Select location mode to get UV index.'
   }
 
   refreshTimerId = window.setInterval(() => {
@@ -190,93 +200,78 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section class="page-panel">
-    <header class="panel-header">
-      <h2>UV Risk Dashboard</h2>
-      <p>Get UV index insights for your live or manually entered Australian location.</p>
+  <section class="page-panel home-page">
+    <header class="panel-header home-head">
+      <h2>UV Index</h2>
+      <label class="switch-row">
+        <span>In-app alerts</span>
+        <input v-model="alertEnabled" type="checkbox" class="switch-input" />
+        <span class="switch-track" aria-hidden="true"></span>
+      </label>
     </header>
 
-    <div class="card controls-grid">
-      <div>
-        <p class="label">Custom Location Permission</p>
-        <p>
-          <strong>{{ locationPermission.toUpperCase() }}</strong>
-        </p>
-      </div>
-      <div class="figure-controls">
-        <button type="button" class="secondary-btn" @click="setCustomPermission('granted')">
-          Full Access
-        </button>
-        <button type="button" class="secondary-btn" @click="setCustomPermission('denied')">
-          Deny Access
-        </button>
-        <button type="button" class="secondary-btn" @click="setCustomPermission('prompt')">
-          Ask Later
-        </button>
-      </div>
-    </div>
-
-    <div v-if="showLiveControls" class="card form-grid">
-      <label>
-        Live Mode City
-        <select v-model="liveCity">
-          <option v-for="city in australianCities" :key="city.name" :value="city.name">
-            {{ city.name }} ({{ city.region }})
-          </option>
-        </select>
-      </label>
-      <label>
-        Postcode
-        <input :value="australianCities.find((c) => c.name === liveCity)?.postcode || ''" type="text" disabled />
-      </label>
-      <button type="button" class="primary-btn" @click="updateUvFromLiveMode">
-        Refresh Live Mode UV
-      </button>
-    </div>
-
-    <div v-if="showManualForm" class="card form-grid">
-      <label>
-        City
-        <select v-model="manualCity">
-          <option v-for="city in australianCities" :key="city.name" :value="city.name">
-            {{ city.name }} ({{ city.region }})
-          </option>
-        </select>
-      </label>
-      <label>
-        Postcode
-        <input v-model="manualPostcode" type="text" placeholder="e.g. 3000" maxlength="4" />
-      </label>
-      <button type="button" class="primary-btn" @click="updateUvFromManual">Use Manual Location</button>
-    </div>
-
-    <div class="card controls-grid">
-      <div>
-        <p class="label">In-App Alert Permission</p>
-        <p>
-          Status: <strong>{{ alertPermission }}</strong>
-        </p>
-      </div>
-      <div class="figure-controls">
-        <button type="button" class="secondary-btn" @click="setAlertPermission('opted-in')">
-          Opt In For Alerts
-        </button>
-        <button type="button" class="secondary-btn" @click="setAlertPermission('opted-out')">
-          Opt Out Of Alerts
-        </button>
-      </div>
-    </div>
-
-    <p v-if="statusMessage" class="status-message">{{ statusMessage }}</p>
-    <AlertBanner v-if="alertMessage" :message="alertMessage" />
-
-    <p v-if="loadingUv" class="status-message">Loading UV index...</p>
     <UvIndexCard
-      v-else-if="uvData"
+      v-if="uvData && !loadingUv"
       :uv-index="uvData.uvIndex"
       :level="uvData.level"
       :recommendation="uvData.recommendation"
       :location-label="locationLabel"
     />
+    <div v-else class="card uv-placeholder">
+      <p>{{ loadingUv ? 'Loading UV index...' : 'Choose live or manual location to see UV index.' }}</p>
+    </div>
+
+    <AlertBanner v-if="alertMessage" :message="alertMessage" />
+    <p v-if="statusMessage" class="status-message">{{ statusMessage }}</p>
+
+    <section class="card mode-card">
+      <div class="mode-buttons">
+        <button type="button" class="secondary-btn" @click="setCustomPermission('granted')">Full Access</button>
+        <button type="button" class="secondary-btn" @click="setCustomPermission('denied')">Denied Access</button>
+      </div>
+
+      <div v-if="showLiveControls" class="input-stack">
+        <label>
+          Live Mode City
+          <select v-model="liveCity">
+            <option v-for="city in australianCities" :key="city.name" :value="city.name">
+              {{ city.name }} ({{ city.region }})
+            </option>
+          </select>
+        </label>
+        <button type="button" class="primary-btn" @click="updateUvFromLiveMode">Refresh Live UV</button>
+      </div>
+
+      <details v-if="showManualForm" class="manual-panel" open>
+        <summary>Manual location input</summary>
+        <div class="input-stack">
+          <label>
+            City
+            <select v-model="manualCity">
+              <option v-for="city in australianCities" :key="city.name" :value="city.name">
+                {{ city.name }} ({{ city.region }})
+              </option>
+            </select>
+          </label>
+          <label>
+            Postcode
+            <input v-model="manualPostcode" type="text" placeholder="e.g. 3000" maxlength="4" />
+          </label>
+          <button type="button" class="primary-btn" @click="updateUvFromManual">Use Manual Location</button>
+        </div>
+      </details>
+    </section>
+
+    <div v-if="showPermissionPrompt" class="modal-overlay" @click.self="showPermissionPrompt = false">
+      <div class="modal-card compact-modal">
+        <h3>Allow location access?</h3>
+        <p>Choose full access for live UV or denied access for manual city and postcode entry.</p>
+        <div class="figure-controls">
+          <button type="button" class="primary-btn" @click="setPermissionFromPrompt('granted')">Allow</button>
+          <button type="button" class="secondary-btn" @click="setPermissionFromPrompt('denied')">Deny</button>
+          <button type="button" class="secondary-btn" @click="setPermissionFromPrompt('prompt')">Later</button>
+        </div>
+      </div>
+    </div>
   </section>
 </template>

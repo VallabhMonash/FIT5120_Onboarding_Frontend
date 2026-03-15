@@ -39,18 +39,16 @@ function normalizedHeight(value) {
 <template>
   <section class="card chart-card">
     <h3>{{ props.title }}</h3>
-    <div class="chart-layout">
+    <div class="chart-layout chart-layout-tall">
       <div class="y-axis" aria-hidden="true">
         <span v-for="(tick, index) in yTicks" :key="`${tick}-${index}`">{{ tick }}</span>
       </div>
-      <div class="bar-chart" role="img" :aria-label="props.title">
-        <div
-          v-for="row in props.data"
-          :key="String(row[props.xKey])"
-          class="bar-item"
-        >
-          <div class="bar" :style="{ height: normalizedHeight(row[props.yKey]) }"></div>
-          <span class="bar-label">{{ row[props.xKey] }}</span>
+      <div class="bar-chart-scroll">
+        <div class="bar-chart" role="img" :aria-label="props.title">
+          <div v-for="row in props.data" :key="String(row[props.xKey])" class="bar-item" :title="`${row[props.xKey]}: ${row[props.yKey]}`">
+            <div class="bar" :style="{ height: normalizedHeight(row[props.yKey]) }"></div>
+            <span class="bar-label">{{ row[props.xKey] }}</span>
+          </div>
         </div>
       </div>
     </div>

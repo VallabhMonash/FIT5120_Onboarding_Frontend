@@ -12,7 +12,9 @@ const emit = defineEmits(['share'])
 <template>
   <article class="card myth-card">
     <h3>{{ props.item.title }}</h3>
-    <p>{{ props.item.explanation }}</p>
-    <button type="button" class="secondary-btn" @click="emit('share', props.item)">Share</button>
+    <p class="myth-text">{{ props.item.explanation }}</p>
+    <button type="button" class="icon-btn" aria-label="Share myth card" @click="emit('share', props.item)">
+      ⤴ Share
+    </button>
   </article>
 </template>

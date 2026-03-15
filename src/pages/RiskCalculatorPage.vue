@@ -1,12 +1,12 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import SkinToneCard from '../components/SkinToneCard.vue'
 import { getRiskGuidanceByTone, getSkinToneOptions } from '../services/riskService'
 
 const tones = ref([])
 const selectedTone = ref('')
 const guidance = ref(null)
 const educationModalOpen = ref(false)
+const sourcesModalOpen = ref(false)
 
 async function loadTones() {
   tones.value = await getSkinToneOptions()
@@ -23,19 +23,27 @@ onMounted(loadTones)
 <template>
   <section class="page-panel">
     <header class="panel-header">
-      <h2>Personalised Risk Calculator</h2>
-      <p>Select a Fitzpatrick skin type to view tailored UV prevention guidance.</p>
+      <h2>Risk Calculator</h2>
+      <p>Pick your Fitzpatrick skin tone to view tailored UV risk and prevention guidance.</p>
     </header>
 
-    <div class="skin-tone-grid">
-      <SkinToneCard
-        v-for="tone in tones"
-        :key="tone.id"
-        :tone="tone"
-        :selected="tone.id === selectedTone"
-        @select="selectTone"
-      />
-    </div>
+    <section class="card scale-card">
+      <div class="scale-row">
+        <button
+          v-for="tone in tones"
+          :key="tone.id"
+          type="button"
+          class="scale-chip"
+          :class="[`tone-${tone.id.toLowerCase()}`, { active: selectedTone === tone.id }]"
+          :title="`${tone.label}: ${tone.riskLevel}. ${tone.description}`"
+          @click="selectTone(tone.id)"
+        >
+          <span>{{ tone.label }}</span>
+          <small>{{ tone.riskLevel }}</small>
+        </button>
+      </div>
+      <p class="chart-caption">Tap any tone for details. Long press/hover shows quick explanation.</p>
+    </section>
 
     <div v-if="guidance" class="card guidance-card">
       <h3>{{ guidance.title }}</h3>
@@ -43,21 +51,31 @@ onMounted(loadTones)
       <ul>
         <li v-for="action in guidance.preventiveActions" :key="action">{{ action }}</li>
       </ul>
-      <button type="button" class="secondary-btn" @click="educationModalOpen = true">
-        Skin Tone Explanation
-      </button>
+      <div class="figure-controls">
+        <button type="button" class="secondary-btn" @click="educationModalOpen = true">Skin Tone Explanation</button>
+        <button type="button" class="secondary-btn" @click="sourcesModalOpen = true">View Research Sources</button>
+      </div>
     </div>
 
     <div v-if="educationModalOpen" class="modal-overlay" @click.self="educationModalOpen = false">
       <div class="modal-card">
         <h3>How skin tone relates to UV absorption</h3>
         <p>
-          The Fitzpatrick scale helps estimate how skin responds to UV exposure. Melanin can reduce the chance of immediate sunburn, but all skin tones remain vulnerable to UV-induced skin and eye damage.
-        </p>
-        <p>
-          Personalised guidance combines skin response patterns with UV index intensity to support safer outdoor behaviour.
+          The Fitzpatrick scale estimates how skin reacts to UV exposure. More melanin can lower immediate burn risk, but every skin tone still needs UV protection to reduce long-term damage.
         </p>
         <button type="button" class="primary-btn" @click="educationModalOpen = false">Close</button>
+      </div>
+    </div>
+
+    <div v-if="sourcesModalOpen" class="modal-overlay" @click.self="sourcesModalOpen = false">
+      <div class="modal-card">
+        <h3>Research sources</h3>
+        <ul class="source-list">
+          <li v-for="source in guidance?.sources || []" :key="source.url">
+            <a :href="source.url" target="_blank" rel="noreferrer">{{ source.title }}</a>
+          </li>
+        </ul>
+        <button type="button" class="primary-btn" @click="sourcesModalOpen = false">Close</button>
       </div>
     </div>
   </section>
