@@ -8,74 +8,78 @@ import { getUvByCityAndPostcode, getUvByCoordinates } from '../services/uvServic
 const locationPermission = ref('prompt')
 const manualCity = ref(australianCities[0].name)
 const manualPostcode = ref(australianCities[0].postcode)
-const liveCity = ref(australianCities[0].name)
 const uvData = ref(null)
 const loadingUv = ref(false)
 const locationLabel = ref('Awaiting location mode')
 const alertMessage = ref('')
 const statusMessage = ref('')
+const statusType = ref('info')
 const showPermissionPrompt = ref(false)
 const alertPermission = ref('opted-in')
 
 let refreshTimerId = null
 
 const isDangerousUv = computed(() => (uvData.value?.uvIndex || 0) >= 6)
-const showManualForm = computed(() => locationPermission.value === 'denied')
-const showLiveControls = computed(() => locationPermission.value === 'granted')
+const showManualForm = computed(() => locationPermission.value !== 'granted')
+
 const alertEnabled = computed({
   get: () => alertPermission.value === 'opted-in',
   set: (value) => {
     alertPermission.value = value ? 'opted-in' : 'opted-out'
-    persistLocationPreference()
+    persistSessionPreference()
     sendUvAlertIfNeeded()
   }
 })
 
+const liveLocationEnabled = computed({
+  get: () => locationPermission.value === 'granted',
+  set: (value) => {
+    if (value) {
+      showPermissionPrompt.value = true
+      statusMessage.value = 'Choose how you want to use live location.'
+      statusType.value = 'info'
+      return
+    }
+
+    locationPermission.value = 'denied'
+    persistSessionPreference()
+    statusMessage.value = 'Live location disabled. Manual location mode enabled.'
+    statusType.value = 'info'
+  }
+})
+
 const STORAGE_KEYS = {
-  permission: 'uv-custom-location-permission',
-  promptSeen: 'uv-location-prompt-seen',
+  promptShownInSession: 'uv-location-prompt-shown-in-session',
+  locationPermission: 'uv-location-permission',
   alertPermission: 'uv-custom-alert-permission',
-  liveCity: 'uv-live-city',
   manualCity: 'uv-manual-city',
   manualPostcode: 'uv-manual-postcode'
 }
 
-function persistLocationPreference() {
+function persistSessionPreference() {
   try {
-    localStorage.setItem(STORAGE_KEYS.permission, locationPermission.value)
-    localStorage.setItem(STORAGE_KEYS.promptSeen, 'true')
-    localStorage.setItem(STORAGE_KEYS.alertPermission, alertPermission.value)
-    localStorage.setItem(STORAGE_KEYS.liveCity, liveCity.value)
-    localStorage.setItem(STORAGE_KEYS.manualCity, manualCity.value)
-    localStorage.setItem(STORAGE_KEYS.manualPostcode, manualPostcode.value)
+    sessionStorage.setItem(STORAGE_KEYS.locationPermission, locationPermission.value)
+    sessionStorage.setItem(STORAGE_KEYS.alertPermission, alertPermission.value)
+    sessionStorage.setItem(STORAGE_KEYS.manualCity, manualCity.value)
+    sessionStorage.setItem(STORAGE_KEYS.manualPostcode, manualPostcode.value)
   } catch (error) {
     // Ignore environments where storage is unavailable.
   }
 }
 
-function loadLocationPreference() {
+function loadSessionPreference() {
   try {
-    const savedPermission = localStorage.getItem(STORAGE_KEYS.permission)
-    const savedPromptSeen = localStorage.getItem(STORAGE_KEYS.promptSeen)
-    const savedAlertPermission = localStorage.getItem(STORAGE_KEYS.alertPermission)
-    const savedLiveCity = localStorage.getItem(STORAGE_KEYS.liveCity)
-    const savedManualCity = localStorage.getItem(STORAGE_KEYS.manualCity)
-    const savedPostcode = localStorage.getItem(STORAGE_KEYS.manualPostcode)
+    const savedLocationPermission = sessionStorage.getItem(STORAGE_KEYS.locationPermission)
+    const savedAlertPermission = sessionStorage.getItem(STORAGE_KEYS.alertPermission)
+    const savedManualCity = sessionStorage.getItem(STORAGE_KEYS.manualCity)
+    const savedPostcode = sessionStorage.getItem(STORAGE_KEYS.manualPostcode)
 
-    if (savedPermission === 'prompt' || savedPermission === 'granted' || savedPermission === 'denied') {
-      locationPermission.value = savedPermission
-    }
-
-    if (!savedPromptSeen) {
-      showPermissionPrompt.value = true
+    if (savedLocationPermission === 'granted' || savedLocationPermission === 'denied' || savedLocationPermission === 'prompt') {
+      locationPermission.value = savedLocationPermission
     }
 
     if (savedAlertPermission === 'opted-in' || savedAlertPermission === 'opted-out') {
       alertPermission.value = savedAlertPermission
-    }
-
-    if (savedLiveCity && australianCities.some((city) => city.name === savedLiveCity)) {
-      liveCity.value = savedLiveCity
     }
 
     if (savedManualCity && australianCities.some((city) => city.name === savedManualCity)) {
@@ -94,34 +98,39 @@ function buildAlertMessage(index, label) {
   return `UV index ${index} detected for ${label}. Potential skin damage risk is elevated.`
 }
 
-function setPermissionFromPrompt(mode) {
-  showPermissionPrompt.value = false
-  setCustomPermission(mode)
-}
+function fetchCurrentGeolocation() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Geolocation is not supported on this device.'))
+      return
+    }
 
-async function updateUvFromLiveCoordinates(lat, lon) {
-  loadingUv.value = true
-  try {
-    const result = await getUvByCoordinates(lat, lon)
-    uvData.value = result
-    locationLabel.value = `Live mode · ${liveCity.value}`
-    statusMessage.value = 'Live mode updated.'
-    persistLocationPreference()
-  } catch (error) {
-    statusMessage.value = 'Could not load UV for live mode.'
-  } finally {
-    loadingUv.value = false
-  }
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve(position.coords),
+      () => reject(new Error('Unable to fetch your current location.')),
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  })
 }
 
 async function updateUvFromLiveMode() {
-  const city = australianCities.find((item) => item.name === liveCity.value)
-  if (!city) {
-    statusMessage.value = 'Please choose a valid city for live mode.'
-    return
-  }
+  loadingUv.value = true
 
-  await updateUvFromLiveCoordinates(city.lat, city.lon)
+  try {
+    const coords = await fetchCurrentGeolocation()
+    const result = await getUvByCoordinates(coords.latitude, coords.longitude)
+    uvData.value = result
+    locationLabel.value = `Live location (${coords.latitude.toFixed(2)}, ${coords.longitude.toFixed(2)})`
+    statusMessage.value = 'Live UV updated from your current location.'
+    statusType.value = 'info'
+  } catch (error) {
+    statusMessage.value = error.message || 'Could not load live UV.'
+    statusType.value = 'error'
+    locationPermission.value = 'denied'
+    persistSessionPreference()
+  } finally {
+    loadingUv.value = false
+  }
 }
 
 async function updateUvFromManual() {
@@ -131,29 +140,38 @@ async function updateUvFromManual() {
     uvData.value = result
     locationLabel.value = `${manualCity.value} ${manualPostcode.value}`
     statusMessage.value = 'Manual location updated.'
-    persistLocationPreference()
+    statusType.value = 'info'
+    persistSessionPreference()
   } catch (error) {
-    statusMessage.value = 'Please choose a valid city and postcode.'
+    statusMessage.value = error.message || 'Please choose a valid city and postcode.'
+    statusType.value = 'error'
   } finally {
     loadingUv.value = false
   }
 }
 
-async function setCustomPermission(mode) {
-  locationPermission.value = mode
-  persistLocationPreference()
+async function chooseAllowPersistent() {
+  showPermissionPrompt.value = false
+  locationPermission.value = 'granted'
+  persistSessionPreference()
+  await updateUvFromLiveMode()
+}
 
-  if (mode === 'granted') {
-    statusMessage.value = 'Location access enabled.'
-    await updateUvFromLiveMode()
-  } else if (mode === 'denied') {
-    statusMessage.value = 'Location access denied. Manual input enabled.'
-    await updateUvFromManual()
-  } else {
-    statusMessage.value = 'Choose location mode to continue.'
-    uvData.value = null
-    locationLabel.value = 'Awaiting location mode'
-  }
+async function chooseAllowOnce() {
+  showPermissionPrompt.value = false
+  await updateUvFromLiveMode()
+  locationPermission.value = 'denied'
+  persistSessionPreference()
+  statusMessage.value = 'Live location used once. Toggle on again when needed.'
+  statusType.value = 'info'
+}
+
+function chooseAskLater() {
+  showPermissionPrompt.value = false
+  locationPermission.value = 'denied'
+  persistSessionPreference()
+  statusMessage.value = 'You can enable live location anytime using the toggle.'
+  statusType.value = 'info'
 }
 
 function sendUvAlertIfNeeded() {
@@ -170,23 +188,25 @@ watch([uvData, alertPermission], () => {
 })
 
 onMounted(() => {
-  loadLocationPreference()
+  loadSessionPreference()
 
-  if (locationPermission.value === 'granted') {
-    statusMessage.value = 'Using saved live location mode.'
+  const promptWasShown = sessionStorage.getItem(STORAGE_KEYS.promptShownInSession) === 'true'
+  if (!promptWasShown) {
+    locationPermission.value = 'prompt'
+    persistSessionPreference()
+    showPermissionPrompt.value = true
+    statusMessage.value = 'Choose location mode to start.'
+    statusType.value = 'info'
+    sessionStorage.setItem(STORAGE_KEYS.promptShownInSession, 'true')
+  } else if (locationPermission.value === 'granted') {
+    statusMessage.value = 'Live location still active for this session.'
+    statusType.value = 'info'
     updateUvFromLiveMode()
-  } else if (locationPermission.value === 'denied') {
-    statusMessage.value = 'Using saved manual location mode.'
-    updateUvFromManual()
-  } else {
-    statusMessage.value = 'Select location mode to get UV index.'
   }
 
   refreshTimerId = window.setInterval(() => {
     if (locationPermission.value === 'granted') {
       updateUvFromLiveMode()
-    } else if (locationPermission.value === 'denied') {
-      updateUvFromManual()
     }
     sendUvAlertIfNeeded()
   }, 120000)
@@ -203,11 +223,18 @@ onUnmounted(() => {
   <section class="page-panel home-page">
     <header class="panel-header home-head">
       <h2>UV Index</h2>
-      <label class="switch-row">
-        <span>In-app alerts</span>
-        <input v-model="alertEnabled" type="checkbox" class="switch-input" />
-        <span class="switch-track" aria-hidden="true"></span>
-      </label>
+      <div class="switch-stack">
+        <label class="switch-row">
+          <span>Live location</span>
+          <input v-model="liveLocationEnabled" type="checkbox" class="switch-input" />
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+        <label class="switch-row">
+          <span>In-app alerts</span>
+          <input v-model="alertEnabled" type="checkbox" class="switch-input" />
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+      </div>
     </header>
 
     <UvIndexCard
@@ -218,31 +245,16 @@ onUnmounted(() => {
       :location-label="locationLabel"
     />
     <div v-else class="card uv-placeholder">
-      <p>{{ loadingUv ? 'Loading UV index...' : 'Choose live or manual location to see UV index.' }}</p>
+      <p>{{ loadingUv ? 'Loading UV index...' : 'Enable live location or use manual mode to fetch UV index.' }}</p>
     </div>
 
     <AlertBanner v-if="alertMessage" :message="alertMessage" />
-    <p v-if="statusMessage" class="status-message">{{ statusMessage }}</p>
+    <p v-if="statusMessage" class="status-message" :class="{ error: statusType === 'error' }">
+      {{ statusMessage }}
+    </p>
 
-    <section class="card mode-card">
-      <div class="mode-buttons">
-        <button type="button" class="secondary-btn" @click="setCustomPermission('granted')">Full Access</button>
-        <button type="button" class="secondary-btn" @click="setCustomPermission('denied')">Denied Access</button>
-      </div>
-
-      <div v-if="showLiveControls" class="input-stack">
-        <label>
-          Live Mode City
-          <select v-model="liveCity">
-            <option v-for="city in australianCities" :key="city.name" :value="city.name">
-              {{ city.name }} ({{ city.region }})
-            </option>
-          </select>
-        </label>
-        <button type="button" class="primary-btn" @click="updateUvFromLiveMode">Refresh Live UV</button>
-      </div>
-
-      <details v-if="showManualForm" class="manual-panel" open>
+    <section v-if="showManualForm" class="card mode-card">
+      <details class="manual-panel" open>
         <summary>Manual location input</summary>
         <div class="input-stack">
           <label>
@@ -255,21 +267,21 @@ onUnmounted(() => {
           </label>
           <label>
             Postcode
-            <input v-model="manualPostcode" type="text" placeholder="e.g. 3000" maxlength="4" />
+            <input v-model="manualPostcode" type="text" placeholder="Must match selected city" maxlength="4" />
           </label>
           <button type="button" class="primary-btn" @click="updateUvFromManual">Use Manual Location</button>
         </div>
       </details>
     </section>
 
-    <div v-if="showPermissionPrompt" class="modal-overlay" @click.self="showPermissionPrompt = false">
+    <div v-if="showPermissionPrompt" class="modal-overlay" @click.self="chooseAskLater">
       <div class="modal-card compact-modal">
-        <h3>Allow location access?</h3>
-        <p>Choose full access for live UV or denied access for manual city and postcode entry.</p>
+        <h3>Use live location?</h3>
+        <p>Choose how you want to use location access for UV data.</p>
         <div class="figure-controls">
-          <button type="button" class="primary-btn" @click="setPermissionFromPrompt('granted')">Allow</button>
-          <button type="button" class="secondary-btn" @click="setPermissionFromPrompt('denied')">Deny</button>
-          <button type="button" class="secondary-btn" @click="setPermissionFromPrompt('prompt')">Later</button>
+          <button type="button" class="primary-btn" @click="chooseAllowPersistent">Allow</button>
+          <button type="button" class="secondary-btn" @click="chooseAllowOnce">Allow once</button>
+          <button type="button" class="secondary-btn" @click="chooseAskLater">Ask later</button>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { australianCities } from '../data/mockData'
+import { getJson } from './apiClient'
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max)
@@ -25,30 +26,73 @@ function computeDeterministicUv(lat, lon) {
   return Number(clamp(base, 1, 12).toFixed(1))
 }
 
-export async function getUvByCoordinates(lat, lon) {
-  await new Promise((resolve) => setTimeout(resolve, 300))
-  const uvIndex = computeDeterministicUv(lat, lon)
+function isValidAustralianPostcode(value) {
+  return /^\d{4}$/.test(String(value).trim())
+}
 
-  return {
-    uvIndex,
-    level: uvLevel(uvIndex),
-    recommendation: recommendationForUv(uvIndex)
+function isRegionPostcodeMatch(region, postcode) {
+  const digit = String(postcode).trim().charAt(0)
+  const rules = {
+    VIC: '3',
+    NSW: '2',
+    QLD: '4',
+    SA: '5',
+    WA: '6',
+    TAS: '7',
+    ACT: '2',
+    NT: '0'
+  }
+
+  const expected = rules[region]
+  return expected ? digit === expected : true
+}
+
+async function getRealtimeUv(lat, lon) {
+  const payload = await getJson(`/api/v1/uv/by-coordinates?lat=${lat}&lon=${lon}`)
+  const uvIndex = Number(payload.uv_index)
+
+  if (!Number.isFinite(uvIndex)) {
+    throw new Error('Invalid UV index from backend.')
+  }
+
+  return Number(uvIndex.toFixed(1))
+}
+
+export async function getUvByCoordinates(lat, lon) {
+  try {
+    const uvIndex = await getRealtimeUv(lat, lon)
+    return {
+      uvIndex,
+      level: uvLevel(uvIndex),
+      recommendation: recommendationForUv(uvIndex)
+    }
+  } catch (error) {
+    const uvIndex = computeDeterministicUv(lat, lon)
+    return {
+      uvIndex,
+      level: uvLevel(uvIndex),
+      recommendation: recommendationForUv(uvIndex)
+    }
   }
 }
 
 export async function getUvByCityAndPostcode(cityName, postcode) {
   const city = australianCities.find((item) => item.name === cityName)
   if (!city) {
-    throw new Error('City not found in mock dataset.')
+    throw new Error('City not found in configured dataset.')
   }
 
-  const postcodeBias = postcode ? Number(postcode.slice(-1)) / 10 : 0
-  const uvData = await getUvByCoordinates(city.lat, city.lon)
+  const normalizedPostcode = String(postcode).trim()
 
-  return {
-    ...uvData,
-    uvIndex: Number(clamp(uvData.uvIndex + postcodeBias, 1, 12).toFixed(1))
+  if (!isValidAustralianPostcode(normalizedPostcode)) {
+    throw new Error('Postcode must be a valid 4-digit Australian postcode.')
   }
+
+  if (!isRegionPostcodeMatch(city.region, normalizedPostcode)) {
+    throw new Error(`Postcode does not match ${city.name} (${city.region}).`)
+  }
+
+  return getUvByCoordinates(city.lat, city.lon)
 }
 
 export function getUvThemeClass(uvIndex) {
