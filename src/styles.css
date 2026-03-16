@@ -44,6 +44,56 @@ summary {
   width: 100%;
 }
 
+.gate-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.gate-card {
+  width: min(420px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.1);
+  display: grid;
+  gap: 12px;
+}
+
+.gate-kicker {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gate-card h1 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.gate-subtext {
+  margin: 0;
+  color: var(--muted);
+}
+
+.gate-label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.gate-input {
+  width: 100%;
+}
+
+.gate-btn {
+  width: 100%;
+}
+
 .app-shell {
   width: min(980px, 100%);
   margin: 0 auto;

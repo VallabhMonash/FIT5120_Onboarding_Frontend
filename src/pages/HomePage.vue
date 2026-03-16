@@ -16,37 +16,76 @@ const statusMessage = ref('')
 const statusType = ref('info')
 const showPermissionPrompt = ref(false)
 const alertPermission = ref('opted-in')
+const liveLocationToggle = ref(false)
+const notificationSupported = typeof window !== 'undefined' && 'Notification' in window
+const notificationPermission = ref(notificationSupported ? Notification.permission : 'unsupported')
+const lastNotificationKey = ref('')
 
 let refreshTimerId = null
 
 const isDangerousUv = computed(() => (uvData.value?.uvIndex || 0) >= 6)
 const showManualForm = computed(() => locationPermission.value !== 'granted')
 
-const alertEnabled = computed({
-  get: () => alertPermission.value === 'opted-in',
-  set: (value) => {
-    alertPermission.value = value ? 'opted-in' : 'opted-out'
-    persistSessionPreference()
-    sendUvAlertIfNeeded()
-  }
-})
+const alertEnabled = computed(() => alertPermission.value === 'opted-in')
 
-const liveLocationEnabled = computed({
-  get: () => locationPermission.value === 'granted',
-  set: (value) => {
-    if (value) {
-      showPermissionPrompt.value = true
-      statusMessage.value = 'Choose how you want to use live location.'
-      statusType.value = 'info'
-      return
-    }
+function onAlertToggle(event) {
+  const shouldEnable = event.target.checked
+  alertPermission.value = shouldEnable ? 'opted-in' : 'opted-out'
+  persistSessionPreference()
 
-    locationPermission.value = 'denied'
-    persistSessionPreference()
-    statusMessage.value = 'Live location disabled. Manual location mode enabled.'
+  if (!shouldEnable) {
+    statusMessage.value = 'In-app and browser UV alerts disabled.'
     statusType.value = 'info'
+    sendUvAlertIfNeeded()
+    return
   }
-})
+
+  if (!notificationSupported) {
+    statusMessage.value = 'In-app alerts enabled. Browser notifications are not supported here.'
+    statusType.value = 'info'
+    sendUvAlertIfNeeded()
+    return
+  }
+
+  if (notificationPermission.value === 'default') {
+    Notification.requestPermission().then((permission) => {
+      notificationPermission.value = permission
+      if (permission === 'granted') {
+        statusMessage.value = 'In-app alerts enabled. Browser notifications allowed.'
+      } else {
+        statusMessage.value = 'In-app alerts enabled. Browser notifications not allowed.'
+      }
+      statusType.value = 'info'
+      sendUvAlertIfNeeded()
+    })
+    return
+  }
+
+  statusMessage.value =
+    notificationPermission.value === 'granted'
+      ? 'In-app alerts enabled. Browser notifications allowed.'
+      : 'In-app alerts enabled. Browser notifications not allowed.'
+  statusType.value = 'info'
+  sendUvAlertIfNeeded()
+}
+
+function onLiveLocationToggle(event) {
+  const shouldEnable = event.target.checked
+
+  if (shouldEnable) {
+    liveLocationToggle.value = false
+    showPermissionPrompt.value = true
+    statusMessage.value = 'Choose how you want to use live location.'
+    statusType.value = 'info'
+    return
+  }
+
+  locationPermission.value = 'denied'
+  liveLocationToggle.value = false
+  persistSessionPreference()
+  statusMessage.value = 'Live location disabled. Manual location mode enabled.'
+  statusType.value = 'info'
+}
 
 const STORAGE_KEYS = {
   promptShownInSession: 'uv-location-prompt-shown-in-session',
@@ -96,6 +135,20 @@ function loadSessionPreference() {
 
 function buildAlertMessage(index, label) {
   return `UV index ${index} detected for ${label}. Potential skin damage risk is elevated.`
+}
+
+function pushBrowserNotification(message) {
+  if (!notificationSupported || notificationPermission.value !== 'granted' || !uvData.value) {
+    return
+  }
+
+  const key = `${locationLabel.value}-${uvData.value.uvIndex}`
+  if (lastNotificationKey.value === key) {
+    return
+  }
+
+  new Notification('SunSafeCamp UV Alert', { body: message })
+  lastNotificationKey.value = key
 }
 
 function fetchCurrentGeolocation() {
@@ -153,6 +206,7 @@ async function updateUvFromManual() {
 async function chooseAllowPersistent() {
   showPermissionPrompt.value = false
   locationPermission.value = 'granted'
+  liveLocationToggle.value = true
   persistSessionPreference()
   await updateUvFromLiveMode()
 }
@@ -161,6 +215,7 @@ async function chooseAllowOnce() {
   showPermissionPrompt.value = false
   await updateUvFromLiveMode()
   locationPermission.value = 'denied'
+  liveLocationToggle.value = false
   persistSessionPreference()
   statusMessage.value = 'Live location used once. Toggle on again when needed.'
   statusType.value = 'info'
@@ -169,6 +224,9 @@ async function chooseAllowOnce() {
 function chooseAskLater() {
   showPermissionPrompt.value = false
   locationPermission.value = 'denied'
+  liveLocationToggle.value = false
+  uvData.value = null
+  locationLabel.value = 'Awaiting location mode'
   persistSessionPreference()
   statusMessage.value = 'You can enable live location anytime using the toggle.'
   statusType.value = 'info'
@@ -177,10 +235,15 @@ function chooseAskLater() {
 function sendUvAlertIfNeeded() {
   if (!isDangerousUv.value || !uvData.value || alertPermission.value !== 'opted-in') {
     alertMessage.value = ''
+    if (!isDangerousUv.value) {
+      lastNotificationKey.value = ''
+    }
     return
   }
 
-  alertMessage.value = buildAlertMessage(uvData.value.uvIndex, locationLabel.value)
+  const message = buildAlertMessage(uvData.value.uvIndex, locationLabel.value)
+  alertMessage.value = message
+  pushBrowserNotification(message)
 }
 
 watch([uvData, alertPermission], () => {
@@ -189,6 +252,7 @@ watch([uvData, alertPermission], () => {
 
 onMounted(() => {
   loadSessionPreference()
+  liveLocationToggle.value = locationPermission.value === 'granted'
 
   const promptWasShown = sessionStorage.getItem(STORAGE_KEYS.promptShownInSession) === 'true'
   if (!promptWasShown) {
@@ -201,6 +265,7 @@ onMounted(() => {
   } else if (locationPermission.value === 'granted') {
     statusMessage.value = 'Live location still active for this session.'
     statusType.value = 'info'
+    liveLocationToggle.value = true
     updateUvFromLiveMode()
   }
 
@@ -226,12 +291,12 @@ onUnmounted(() => {
       <div class="switch-stack">
         <label class="switch-row">
           <span>Live location</span>
-          <input v-model="liveLocationEnabled" type="checkbox" class="switch-input" />
+          <input v-model="liveLocationToggle" type="checkbox" class="switch-input" @change="onLiveLocationToggle" />
           <span class="switch-track" aria-hidden="true"></span>
         </label>
         <label class="switch-row">
           <span>In-app alerts</span>
-          <input v-model="alertEnabled" type="checkbox" class="switch-input" />
+          <input :checked="alertEnabled" type="checkbox" class="switch-input" @change="onAlertToggle" />
           <span class="switch-track" aria-hidden="true"></span>
         </label>
       </div>
