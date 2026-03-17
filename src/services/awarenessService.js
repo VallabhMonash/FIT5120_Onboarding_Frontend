@@ -1,6 +1,7 @@
 import { heatTrendSeriesData, mythCards, skinCancerTrendData } from '../data/mockData'
 import { getJson } from './apiClient'
 
+// hello
 function toNumber(value, fallback = 0) {
   const n = Number(value)
   return Number.isFinite(n) ? n : fallback
@@ -12,7 +13,7 @@ export async function getMythCards() {
     return rows.map((row, index) => ({
       id: row.id ?? row.myth_id ?? index + 1,
       title: row.title ?? `Myth ${index + 1}`,
-      explanation: row.explanation ?? row.explaination ?? row.myth_text ?? ''
+      explanation: row.explanation ?? row.explaination ?? row.myth_text ?? '',
     }))
   } catch (error) {
     console.warn('Myth API unavailable, using mock data.')
@@ -26,7 +27,7 @@ export async function getSkinCancerTrend() {
     const rows = await getJson('/api/v1/viz/skin-cancer-trend')
     return rows.map((row) => ({
       year: String(row.year),
-      cases: toNumber(row.cases)
+      cases: toNumber(row.cases),
     }))
   } catch (error) {
     console.warn('Skin trend API unavailable, using mock data.')
@@ -42,7 +43,7 @@ export async function getHeatTrend() {
       .map((row) => ({
         year: toNumber(row.year),
         region: row.region ?? row.city,
-        avgUv: toNumber(row.avg_uv ?? row.average_uv_index)
+        avgUv: toNumber(row.avg_uv ?? row.average_uv_index),
       }))
       .filter((row) => row.year && row.region)
 
