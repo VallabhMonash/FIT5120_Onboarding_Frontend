@@ -1,7 +1,6 @@
 import { heatTrendSeriesData, mythCards, skinCancerTrendData } from '../data/mockData'
 import { getJson } from './apiClient'
 
-// hello
 function toNumber(value, fallback = 0) {
   const n = Number(value)
   return Number.isFinite(n) ? n : fallback
