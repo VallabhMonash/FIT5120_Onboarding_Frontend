@@ -10,10 +10,6 @@ const skinTrend = ref([])
 const heatTrend = ref([])
 const selectedFigure = ref('skin')
 const shareStatus = ref('')
-const activeMythIndex = ref(0)
-const touchStartX = ref(0)
-
-const activeMyth = computed(() => myths.value[activeMythIndex.value] || null)
 
 const binnedSkinTrend = computed(() => {
   const groups = new Map()
@@ -48,30 +44,6 @@ async function loadData() {
   heatTrend.value = await getHeatTrend()
 }
 
-function nextMyth() {
-  if (!myths.value.length) return
-  activeMythIndex.value = (activeMythIndex.value + 1) % myths.value.length
-}
-
-function prevMyth() {
-  if (!myths.value.length) return
-  activeMythIndex.value = (activeMythIndex.value - 1 + myths.value.length) % myths.value.length
-}
-
-function setMyth(index) {
-  activeMythIndex.value = index
-}
-
-function onTouchStart(event) {
-  touchStartX.value = event.changedTouches[0].screenX
-}
-
-function onTouchEnd(event) {
-  const delta = event.changedTouches[0].screenX - touchStartX.value
-  if (delta > 45) prevMyth()
-  if (delta < -45) nextMyth()
-}
-
 async function shareMyth(item) {
   const text = `${item.title}\n\n${item.explanation}`
 
@@ -90,27 +62,25 @@ onMounted(loadData)
 
 <template>
   <section class="page-panel">
-    <header class="panel-header">
+    <section class="uv-intro card">
+      <div class="uv-intro-copy">
+        <p class="hero-kicker">Awareness</p>
+        <h2>Understand UV patterns, myths, and prevention with clear visual guidance.</h2>
+        <p>
+          Learn why ozone depletion and high UV exposure matter, and use practical awareness tools to make safer outdoor decisions.
+        </p>
+      </div>
+      <img src="/ozone-layer-depletion-pana.svg" alt="Ozone and UV awareness illustration" class="uv-intro-art" />
+    </section>
+
+    <header class="panel-header awareness-head">
       <h2>Awareness</h2>
-      <p>Swipe myth cards and explore trends with interactive visualisations.</p>
+      <p>Swipe myth cards on mobile and explore trends with interactive visualisations.</p>
     </header>
 
-    <section class="myth-carousel" @touchstart="onTouchStart" @touchend="onTouchEnd">
-      <MythCard v-if="activeMyth" :item="activeMyth" @share="shareMyth" />
-      <div class="carousel-controls">
-        <button type="button" class="secondary-btn" @click="prevMyth">← Prev</button>
-        <div class="carousel-dots">
-          <button
-            v-for="(item, index) in myths"
-            :key="item.id"
-            type="button"
-            class="dot-btn"
-            :class="{ active: index === activeMythIndex }"
-            :aria-label="`Open myth card ${index + 1}`"
-            @click="setMyth(index)"
-          ></button>
-        </div>
-        <button type="button" class="secondary-btn" @click="nextMyth">Next →</button>
+    <section class="myth-carousel">
+      <div class="myth-strip">
+        <MythCard v-for="item in myths" :key="item.id" :item="item" @share="shareMyth" />
       </div>
     </section>
 

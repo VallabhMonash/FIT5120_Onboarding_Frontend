@@ -829,10 +829,32 @@ label {
   background: #fff;
 }
 
-.myth-card {
-  min-height: 196px;
-  display: grid;
+.myth-strip {
+  display: flex;
   gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
+
+.myth-strip > .myth-card {
+  min-width: min(86vw, 360px);
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+
+.myth-card {
+  min-height: 220px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #f2d6a4;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 10px 20px rgba(136, 82, 13, 0.12);
+  overflow: hidden;
 }
 
 .myth-card h3 {
@@ -843,6 +865,23 @@ label {
   margin: 0;
   color: #334155;
   line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.awareness-head h2 {
+  text-align: center;
+  color: var(--accent);
+  font-size: clamp(2.6rem, 6vw, 4rem);
+  line-height: 1.08;
+  margin: 22px 0 0;
+}
+
+.awareness-head p {
+  text-align: center;
+  color: var(--accent);
+  opacity: 0.9;
+  font-size: clamp(1rem, 2.2vw, 1.15rem);
+  margin: 6px 0 0;
 }
 
 .carousel-controls {
@@ -1178,6 +1217,18 @@ label {
 
   .scale-row {
     grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .myth-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow: visible;
+    scroll-snap-type: none;
+    padding-bottom: 0;
+  }
+
+  .myth-strip > .myth-card {
+    min-width: 0;
   }
 
   .page-nav {
