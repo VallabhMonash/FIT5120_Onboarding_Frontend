@@ -1,6 +1,8 @@
 import { australianCities } from '../data/mockData'
 import { getJson } from './apiClient'
 
+const locationLabelCache = new Map()
+
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max)
 }
@@ -73,6 +75,40 @@ export async function getUvByCoordinates(lat, lon) {
       level: uvLevel(uvIndex),
       recommendation: recommendationForUv(uvIndex)
     }
+  }
+}
+
+function pickFirst(...values) {
+  return values.find((value) => typeof value === 'string' && value.trim()) || ''
+}
+
+export async function getLocationLabelByCoordinates(lat, lon) {
+  const key = `${Number(lat).toFixed(2)},${Number(lon).toFixed(2)}`
+  if (locationLabelCache.has(key)) {
+    return locationLabelCache.get(key)
+  }
+
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`
+    )
+    if (!response.ok) {
+      throw new Error('Reverse geocoding failed.')
+    }
+
+    const payload = await response.json()
+    const address = payload?.address || {}
+    const city = pickFirst(address.city, address.town, address.village, address.municipality, address.county)
+    const suburb = pickFirst(address.suburb, address.neighbourhood, address.city_district)
+    const region = pickFirst(address.state, address.state_district)
+
+    const label = suburb && city ? `${suburb}, ${city}` : city || suburb || region || `Live location (${key})`
+    locationLabelCache.set(key, label)
+    return label
+  } catch (error) {
+    const fallback = `Live location (${key})`
+    locationLabelCache.set(key, fallback)
+    return fallback
   }
 }
 

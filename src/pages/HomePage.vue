@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import AlertBanner from '../components/AlertBanner.vue'
 import UvIndexCard from '../components/UvIndexCard.vue'
 import { australianCities } from '../data/mockData'
-import { getUvByCityAndPostcode, getUvByCoordinates } from '../services/uvService'
+import { getLocationLabelByCoordinates, getUvByCityAndPostcode, getUvByCoordinates } from '../services/uvService'
 
 const props = defineProps({
   isActive: {
@@ -167,10 +167,11 @@ async function updateUvFromLiveMode() {
   try {
     const coords = await fetchCurrentGeolocation()
     const result = await getUvByCoordinates(coords.latitude, coords.longitude)
+    const locationName = await getLocationLabelByCoordinates(coords.latitude, coords.longitude)
     uvData.value = result
     locationPermission.value = 'granted'
     liveLocationToggle.value = true
-    locationLabel.value = `Live location (${coords.latitude.toFixed(2)}, ${coords.longitude.toFixed(2)})`
+    locationLabel.value = locationName
     statusMessage.value = 'Live UV updated from your current location.'
     statusType.value = 'info'
   } catch (error) {
@@ -249,57 +250,66 @@ onUnmounted(() => {
 
 <template>
   <section class="page-panel home-page">
-    <header class="panel-header home-head">
-      <h2>UV Index</h2>
-      <div class="switch-stack">
-        <label class="switch-row">
-          <span>Live location</span>
-          <input v-model="liveLocationToggle" type="checkbox" class="switch-input" @change="onLiveLocationToggle" />
-          <span class="switch-track" aria-hidden="true"></span>
-        </label>
-        <label class="switch-row">
-          <span>In-app alerts</span>
-          <input :checked="alertEnabled" type="checkbox" class="switch-input" @change="onAlertToggle" />
-          <span class="switch-track" aria-hidden="true"></span>
-        </label>
+    <section class="uv-intro card">
+      <div class="uv-intro-copy">
+        <p class="hero-kicker">UV Index</p>
+        <h2>Check local UV quickly and protect your skin with confidence.</h2>
+        <p>
+          Use live location for real-time UV readings, or enter city and postcode manually to get
+          prevention guidance.
+        </p>
       </div>
-    </header>
+      <img src="/weather-cuate.svg" alt="Weather and UV illustration" class="uv-intro-art" />
+    </section>
 
-    <UvIndexCard
-      v-if="uvData && !loadingUv"
-      :uv-index="uvData.uvIndex"
-      :level="uvData.level"
-      :recommendation="uvData.recommendation"
-      :location-label="locationLabel"
-    />
-    <div v-else class="card uv-placeholder">
-      <p>{{ loadingUv ? 'Loading UV index...' : 'Enable live location or use manual mode to fetch UV index.' }}</p>
-    </div>
+    <section class="uv-content-shell">
+      <header class="panel-header home-head">
+        <h2 class="uv-page-title">UV Index</h2>
+        <div class="switch-stack">
+          <label class="switch-row">
+            <span>Live location</span>
+            <input v-model="liveLocationToggle" type="checkbox" class="switch-input" @change="onLiveLocationToggle" />
+            <span class="switch-track" aria-hidden="true"></span>
+          </label>
+          <label class="switch-row">
+            <span>In-app alerts</span>
+            <input :checked="alertEnabled" type="checkbox" class="switch-input" @change="onAlertToggle" />
+            <span class="switch-track" aria-hidden="true"></span>
+          </label>
+        </div>
+      </header>
 
-    <AlertBanner v-if="alertMessage" :message="alertMessage" />
-    <p v-if="statusMessage" class="status-message" :class="{ error: statusType === 'error' }">
-      {{ statusMessage }}
-    </p>
-
-    <section v-if="showManualForm" class="card mode-card">
-      <details class="manual-panel" open>
-        <summary>Manual location input</summary>
-        <div class="input-stack">
-          <label>
-            City
+      <section v-if="showManualForm" class="card mode-card">
+        <details class="manual-panel" open>
+          <summary>Manual location input</summary>
+          <div class="manual-row">
             <select v-model="manualCity">
               <option v-for="city in australianCities" :key="city.name" :value="city.name">
                 {{ city.name }} ({{ city.region }})
               </option>
             </select>
-          </label>
-          <label>
-            Postcode
-            <input v-model="manualPostcode" type="text" placeholder="Must match selected city" maxlength="4" />
-          </label>
-          <button type="button" class="primary-btn" @click="updateUvFromManual">Use Manual Location</button>
-        </div>
-      </details>
+            <input v-model="manualPostcode" type="text" placeholder="Postcode" maxlength="4" />
+            <button type="button" class="primary-btn" @click="updateUvFromManual">Use Manual Location</button>
+          </div>
+        </details>
+      </section>
+
+      <UvIndexCard
+        v-if="uvData && !loadingUv"
+        class="uv-card-wrap"
+        :uv-index="uvData.uvIndex"
+        :level="uvData.level"
+        :recommendation="uvData.recommendation"
+        :location-label="locationLabel"
+      />
+      <div v-else class="card uv-placeholder uv-card-wrap">
+        <p>{{ loadingUv ? 'Loading UV index...' : 'Enable live location or use manual mode to fetch UV index.' }}</p>
+      </div>
+
+      <AlertBanner v-if="alertMessage" :message="alertMessage" />
+      <p v-if="statusMessage" class="status-message" :class="{ error: statusType === 'error' }">
+        {{ statusMessage }}
+      </p>
     </section>
   </section>
 </template>
