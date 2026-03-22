@@ -1,7 +1,6 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import PageNav from './components/PageNav.vue'
-import PasswordGate from './components/PasswordGate.vue'
 import AwarenessPage from './pages/AwarenessPage.vue'
 import ContactPage from './pages/ContactPage.vue'
 import HomePage from './pages/HomePage.vue'
@@ -9,15 +8,6 @@ import LandingPage from './pages/LandingPage.vue'
 import RiskCalculatorPage from './pages/RiskCalculatorPage.vue'
 
 const activePage = ref('landing')
-const unlocked = ref(false)
-
-const PASSWORD_SESSION_KEY = 'sunsafe-password-unlocked'
-const expectedPassword = import.meta.env.VITE_SITE_PASSWORD || 'sunsafe2026'
-
-function unlockSite() {
-  unlocked.value = true
-  sessionStorage.setItem(PASSWORD_SESSION_KEY, 'true')
-}
 
 function openUvPage() {
   activePage.value = 'uv'
@@ -27,16 +17,10 @@ function openPage(pageId) {
   activePage.value = pageId
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
-
-onMounted(() => {
-  unlocked.value = sessionStorage.getItem(PASSWORD_SESSION_KEY) === 'true'
-})
 </script>
 
 <template>
-  <PasswordGate v-if="!unlocked" :expected-password="expectedPassword" @unlocked="unlockSite" />
-
-  <div v-else class="app-shell">
+  <div class="app-shell">
     <PageNav v-model="activePage" />
 
     <main class="main-content">
