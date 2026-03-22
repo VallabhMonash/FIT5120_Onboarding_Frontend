@@ -58,25 +58,21 @@ function onHeroImageError() {
       </header>
       <div class="facts-grid">
         <article class="fact-card">
-          <img src="/sunscreen-amico.svg" alt="Sunscreen fact illustration" class="fact-art" />
+          <img src="/Sunburn-rafiki.svg" alt="Sunscreen fact illustration" class="fact-art" />
           <h3>UV exposure is cumulative</h3>
           <p class="fact-stat">Daily protection matters</p>
           <p>Short unprotected exposure can add up over time, even during routine activities.</p>
         </article>
 
         <article class="fact-card">
-          <img src="/sunburn-bro.svg" alt="Sunburn fact illustration" class="fact-art" />
+          <img src="/Sunburn-pana.svg" alt="Sunburn fact illustration" class="fact-art" />
           <h3>Clouds do not block all UV</h3>
           <p class="fact-stat">Risk can still be high</p>
           <p>You can still get UV damage on cooler or cloudy days when it does not feel hot.</p>
         </article>
 
         <article class="fact-card">
-          <img
-            src="/winter-solstice-rafiki.svg"
-            alt="Awareness fact illustration"
-            class="fact-art"
-          />
+          <img src="/Sunburn-amico.svg" alt="Awareness fact illustration" class="fact-art" />
           <h3>Prevention changes outcomes</h3>
           <p class="fact-stat">Habits reduce long-term harm</p>
           <p>Sunscreen, shade, and protective clothing together improve long-term skin safety.</p>

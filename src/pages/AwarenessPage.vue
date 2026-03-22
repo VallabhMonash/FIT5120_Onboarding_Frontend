@@ -73,54 +73,56 @@ onMounted(loadData)
       <img src="/ozone-layer-depletion-pana.svg" alt="Ozone and UV awareness illustration" class="uv-intro-art" />
     </section>
 
-    <header class="panel-header awareness-head">
-      <h2>Awareness</h2>
-      <p>Swipe myth cards on mobile and explore trends with interactive visualisations.</p>
-    </header>
+    <div class="awareness-page-shell">
+      <header class="panel-header awareness-head">
+        <h2>Awareness</h2>
+        <p>Swipe myth cards on mobile and explore trends with interactive visualisations.</p>
+      </header>
 
-    <section class="myth-carousel">
-      <div class="myth-strip">
-        <MythCard v-for="item in myths" :key="item.id" :item="item" @share="shareMyth" />
+      <section class="myth-carousel">
+        <div class="myth-strip">
+          <MythCard v-for="item in myths" :key="item.id" :item="item" @share="shareMyth" />
+        </div>
+      </section>
+
+      <p v-if="shareStatus" class="status-message">{{ shareStatus }}</p>
+
+      <div class="card figure-controls figures-row">
+        <button
+          type="button"
+          class="secondary-btn"
+          :class="{ active: selectedFigure === 'skin' }"
+          title="Shows 5-year binned average skin cancer cases in Australia"
+          @click="selectedFigure = 'skin'"
+        >
+          Skin Cancer Trend ⓘ
+        </button>
+        <button
+          type="button"
+          class="secondary-btn"
+          :class="{ active: selectedFigure === 'heat' }"
+          title="Shows city-level UV trend over years. Select up to 5 cities."
+          @click="selectedFigure = 'heat'"
+        >
+          UV Heat Trend ⓘ
+        </button>
       </div>
-    </section>
 
-    <p v-if="shareStatus" class="status-message">{{ shareStatus }}</p>
+      <TrendChartCard
+        v-if="selectedFigure === 'skin'"
+        title="Skin Cancer Cases (5-year bins)"
+        :data="binnedSkinTrend"
+        x-key="period"
+        y-key="cases"
+        y-label="Average annual cases"
+      />
 
-    <div class="card figure-controls figures-row">
-      <button
-        type="button"
-        class="secondary-btn"
-        :class="{ active: selectedFigure === 'skin' }"
-        title="Shows 5-year binned average skin cancer cases in Australia"
-        @click="selectedFigure = 'skin'"
-      >
-        Skin Cancer Trend ⓘ
-      </button>
-      <button
-        type="button"
-        class="secondary-btn"
-        :class="{ active: selectedFigure === 'heat' }"
-        title="Shows city-level UV trend over years. Select up to 5 cities."
-        @click="selectedFigure = 'heat'"
-      >
-        UV Heat Trend ⓘ
-      </button>
+      <section v-else class="card chart-card">
+        <h3>Historical UV Trend by City</h3>
+        <p class="chart-caption">Compare up to 5 cities at a time.</p>
+        <HeatLineChart :data="heatTrend" :height="340" />
+        <p class="chart-caption">Metric: Average UV index (yearly)</p>
+      </section>
     </div>
-
-    <TrendChartCard
-      v-if="selectedFigure === 'skin'"
-      title="Skin Cancer Cases (5-year bins)"
-      :data="binnedSkinTrend"
-      x-key="period"
-      y-key="cases"
-      y-label="Average annual cases"
-    />
-
-    <section v-else class="card chart-card">
-      <h3>Historical UV Trend by City</h3>
-      <p class="chart-caption">Compare up to 5 cities at a time.</p>
-      <HeatLineChart :data="heatTrend" :height="340" />
-      <p class="chart-caption">Metric: Average UV index (yearly)</p>
-    </section>
   </section>
 </template>

@@ -131,6 +131,12 @@ summary {
   text-transform: uppercase;
 }
 
+.social-chip svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
 .footer-links {
   margin-top: 14px;
   display: flex;
@@ -151,6 +157,40 @@ summary {
   background: var(--primary-600);
   color: #fff2de;
   font-size: 0.88rem;
+}
+
+.contact-page {
+  min-height: 52vh;
+  display: grid;
+  place-items: center;
+  padding: 20px 0 28px;
+}
+
+.contact-card {
+  width: min(760px, 94vw);
+  text-align: center;
+  padding: 28px 20px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  box-shadow: 0 14px 32px rgba(239, 68, 68, 0.12);
+}
+
+.contact-logo {
+  width: clamp(90px, 12vw, 130px);
+  height: auto;
+  margin: 0 auto 12px;
+  display: block;
+}
+
+.contact-card h2 {
+  margin: 6px 0 10px;
+  color: var(--accent);
+  font-size: clamp(2rem, 4vw, 2.6rem);
+}
+
+.contact-card p {
+  margin: 8px 0;
+  font-size: clamp(1rem, 2.1vw, 1.12rem);
 }
 
 .page-nav {
@@ -568,8 +608,10 @@ label {
 
 .status-message,
 .chart-caption {
-  color: var(--muted);
+  color: black;
   margin: 0;
+  text-align: center;
+  margin-top: 0.6rem;
 }
 
 .status-message.error {
@@ -825,8 +867,9 @@ label {
 .myth-carousel {
   display: grid;
   gap: 10px;
-  padding: 16px 4vw;
+  padding: 20px 4vw;
   background: #fff;
+  border-radius: 1rem;
 }
 
 .myth-strip {
@@ -882,6 +925,104 @@ label {
   opacity: 0.9;
   font-size: clamp(1rem, 2.2vw, 1.15rem);
   margin: 6px 0 0;
+}
+
+.risk-page-shell {
+  width: 90%;
+  margin: 0 auto;
+  display: grid;
+  gap: 14px;
+  padding-bottom: 30px;
+}
+
+.risk-head h2 {
+  text-align: center;
+  color: var(--accent);
+  font-size: clamp(2.6rem, 6vw, 4rem);
+  line-height: 1.08;
+  margin: 22px 0 0;
+}
+
+.risk-head p {
+  text-align: center;
+  color: var(--accent);
+  opacity: 0.9;
+  font-size: clamp(1rem, 2.2vw, 1.15rem);
+  margin: 6px 0 0;
+}
+
+.awareness-page-shell {
+  width: 90%;
+  margin: 0 auto;
+  display: grid;
+  gap: 14px;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.awareness-page-shell .myth-carousel,
+.awareness-page-shell .figures-row,
+.awareness-page-shell .chart-card {
+  padding-left: clamp(12px, 2vw, 22px);
+  padding-right: clamp(12px, 2vw, 22px);
+  border-radius: 1rem;
+}
+
+.risk-page-shell .scale-card,
+.risk-page-shell .guidance-card {
+  padding-left: clamp(12px, 2vw, 22px);
+  padding-right: clamp(12px, 2vw, 22px);
+  border-radius: 1rem;
+}
+
+.risk-page-shell .scale-card {
+  margin-top: 14px;
+  background: linear-gradient(180deg, #ff6666, #ffb3b3);
+  border: 1px solid #ff8080;
+}
+
+.risk-guidance-layout {
+  display: grid;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.info-side-panel {
+  background: #fff8f9;
+  border: 1px solid #f7c2cc;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 10px 22px rgba(145, 30, 53, 0.12);
+  display: grid;
+  gap: 10px;
+  min-height: 320px;
+  grid-template-rows: auto 1fr auto;
+}
+
+.info-side-panel h3 {
+  margin: 0;
+  color: var(--accent);
+}
+
+.info-side-panel p {
+  margin: 0;
+  line-height: 1.55;
+  color: #5d2f37;
+}
+
+.info-side-panel .source-list {
+  margin: 0;
+}
+
+.slide-panel-enter-active,
+.slide-panel-leave-active {
+  transition: all 0.22s ease;
+}
+
+.slide-panel-enter-from,
+.slide-panel-leave-to {
+  opacity: 0;
+  transform: translateX(14px);
 }
 
 .carousel-controls {
@@ -973,7 +1114,7 @@ label {
   width: 100%;
   align-self: end;
   border-radius: 8px 8px 4px 4px;
-  background: linear-gradient(180deg, #f59e0b, #f97316);
+  background: linear-gradient(180deg, #ff4d4d, #ff0000);
 }
 
 .bar-label {
@@ -1217,6 +1358,11 @@ label {
 
   .scale-row {
     grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .risk-guidance-layout {
+    grid-template-columns: 1.35fr 0.95fr;
+    align-items: stretch;
   }
 
   .myth-strip {
