@@ -866,10 +866,45 @@ label {
 
 .myth-carousel {
   display: grid;
-  gap: 10px;
-  padding: 20px 4vw;
-  background: #fff;
+  gap: 14px;
+  padding: 18px 4vw 20px;
+  background: linear-gradient(180deg, #fff8eb 0%, #fff 55%);
   border-radius: 1rem;
+  border: 1px solid #ffe7bd;
+  box-shadow: 0 10px 24px rgba(142, 80, 6, 0.09);
+}
+
+.myth-carousel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.myth-kicker {
+  margin: 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #b86000;
+  font-weight: 800;
+}
+
+.myth-carousel-head h3 {
+  margin: 4px 0 0;
+  color: #6d2f2f;
+  font-size: clamp(1rem, 2.2vw, 1.2rem);
+}
+
+.myth-count {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #8f6b45;
+  border: 1px solid #f4d8a0;
+  background: #fff4dc;
+  border-radius: 999px;
+  padding: 6px 10px;
+  white-space: nowrap;
 }
 
 .myth-strip {
@@ -890,25 +925,54 @@ label {
 .myth-card {
   min-height: 220px;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto auto 1fr auto;
   gap: 12px;
-  padding: 14px;
-  border: 1px solid #f2d6a4;
+  padding: 15px;
+  border: 1px solid #f7d7ab;
   border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 10px 20px rgba(136, 82, 13, 0.12);
+  background: linear-gradient(180deg, #fff 0%, #fffcf5 100%);
+  box-shadow: 0 10px 20px rgba(136, 82, 13, 0.08);
   overflow: hidden;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.myth-card:hover {
+  transform: translateY(-2px);
+  border-color: #f0bb73;
+  box-shadow: 0 14px 30px rgba(136, 82, 13, 0.14);
+}
+
+.myth-badge {
+  justify-self: start;
+  font-size: 0.75rem;
+  line-height: 1;
+  font-weight: 800;
+  color: #8a5000;
+  background: #ffefcf;
+  border: 1px solid #ffd48a;
+  border-radius: 999px;
+  padding: 6px 9px;
 }
 
 .myth-card h3 {
   margin: 0;
+  color: #2d1d10;
+  font-size: 1.33rem;
 }
 
 .myth-text {
   margin: 0;
-  color: #334155;
+  color: #59422c;
   line-height: 1.5;
   overflow-wrap: anywhere;
+}
+
+.myth-card .icon-btn {
+  width: 100%;
+  border-radius: 10px;
 }
 
 .awareness-head h2 {

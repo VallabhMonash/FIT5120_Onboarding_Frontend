@@ -80,8 +80,15 @@ onMounted(loadData)
       </header>
 
       <section class="myth-carousel">
+        <div class="myth-carousel-head">
+          <div>
+            <p class="myth-kicker">Myth vs Fact</p>
+            <h3>Common UV misconceptions</h3>
+          </div>
+          <p class="myth-count">{{ myths.length }} cards</p>
+        </div>
         <div class="myth-strip">
-          <MythCard v-for="item in myths" :key="item.id" :item="item" @share="shareMyth" />
+          <MythCard v-for="(item, index) in myths" :key="item.id" :item="item" :index="index" @share="shareMyth" />
         </div>
       </section>
 
